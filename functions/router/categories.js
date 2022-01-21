@@ -50,35 +50,9 @@ const allRoutes = (db) => {
         });
   });
 
-    /* router.put('/categories/:categoryId', 
-
-    body('name').notEmpty().escape().isString(), 
-    
-    (req, res) => {
-
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) {    
-        console.log(errors);
-        return res.status(400).json({ errors: errors.array() });
-        }
-
-        let args = {...req.body};
-
-        db.collection("categories")
-        .doc(req.params.categoryId)
-        .update(args)
-        . then( () => {
-            db.collection("categories")
-            .doc(req.params.categoryId)
-            .get()
-            .then(doc => res.status(202).send(Object.assign({id: req.params.categoryId}, doc.data())))
-            });    
-    }); */
-
   router.put('/categories/:categoryId', 
 
   body('name').notEmpty().escape().isString(), 
-  
   
   (req, res) => {
 
@@ -95,7 +69,7 @@ const allRoutes = (db) => {
       if(doc.exists) {
         db.collection("categories")
           .doc(req.params.categoryId)
-          .update(args)
+          .set(args)
           .then( () => {
               db.collection("categories")
               .doc(req.params.categoryId)
@@ -106,6 +80,22 @@ const allRoutes = (db) => {
         res.status(404).send("Document doesn't exist")
       }
     })    
+  });
+
+  router.delete("/categories/:categoryId",
+
+  (req, res) => {
+    documentExists(req.params.categoryId)
+    .then( doc => {
+      if(doc.exists) {
+        db.collection("categories")
+          .doc(req.params.categoryId)
+          .delete()
+          .then(() => res.status(202).send("Document has been successfully deleted"))
+      }else{
+        res.status(404).send("Document doesn't exist")
+      }
+    })
   });
 
   return router;
