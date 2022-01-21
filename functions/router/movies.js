@@ -10,6 +10,11 @@ const allRoutes = (db) => {
     return check;
   }
 
+  const categoryExists = async (categoryId) => {
+    const check = await db.collection('categories').doc(categoryId).get();
+    return check;
+  }
+
   router.get('/movies', function(req, res) {
 
     db.collection("movies")
@@ -20,10 +25,17 @@ const allRoutes = (db) => {
   
   router.get('/movies/:movieId', function(req, res) {
 
-    db.collection("movies")
-    .doc(req.params.movieId)
-    .get()
-    .then(qs => res.send(qs.data()));
+    documentExists(req.params.movieId)
+    .then( doc => {
+      if(doc.exists) {
+        db.collection("movies")
+          .doc(req.params.movieId)
+          .get()
+          .then(qs => res.status(202).send(qs.data()));
+      }else{
+        res.status(404).send("Document doesn't exist")
+      }
+    })
   });
 
   router.post('/movies', 
@@ -53,12 +65,20 @@ const allRoutes = (db) => {
         description: req.body["description"],
         likes: 0,
       };
-      db.collection("movies")
-        .add(args)
-        .then(doc => {
-          const docInfo = Object.assign({id: doc.id}, args)
-          res.status(201).send(docInfo)
-        });
+
+      categoryExists(req.body["category"])
+      .then( doc => {
+        if(doc.exists) {
+          db.collection("movies")
+            .add(args)
+            .then(doc => {
+              const docInfo = Object.assign({id: doc.id}, args)
+              res.status(201).send(docInfo)
+            });
+        }else{
+          res.status(404).send("Document doesn't exist")
+        }
+      }) 
   });
 
 

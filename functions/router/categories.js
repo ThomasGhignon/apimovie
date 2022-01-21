@@ -20,10 +20,17 @@ const allRoutes = (db) => {
 
   router.get('/categories/:categoryId', function(req, res) {
 
-    db.collection("categories")
-    .doc(req.params.categoryId)
-    .get()
-    .then(qs => res.send(qs.data()));
+    documentExists(req.params.categoryId)
+    .then( doc => {
+      if(doc.exists) {
+        db.collection("categories")
+          .doc(req.params.categoryId)
+          .get()
+          .then(qs => res.status(202).send(qs.data()));
+      }else{
+        res.status(404).send("Document doesn't exist")
+      }
+    })
   });
 
   router.post('/categories', 
@@ -62,7 +69,7 @@ const allRoutes = (db) => {
       return res.status(400).json({ errors: errors.array() });
     }
 
-    let args = {...req.body};
+    let args = {name: req.body.name}; //Name only
 
     documentExists(req.params.categoryId)
     .then( doc => {
