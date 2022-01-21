@@ -5,13 +5,8 @@ const { FieldValue } = require('firebase-admin').firestore;
 
 const allRoutes = (db) => {
 
-  const documentExists = async (movieId) => {
-    const check = await db.collection('movies').doc(movieId).get();
-    return check;
-  }
-
-  const categoryExists = async (categoryId) => {
-    const check = await db.collection('categories').doc(categoryId).get();
+  const documentExists = async (collection, id) => {
+    const check = await db.collection(collection).doc(id).get();
     return check;
   }
 
@@ -19,21 +14,21 @@ const allRoutes = (db) => {
 
     db.collection("movies")
     .get()  
-    .then(qs => qs.docs.map(doc => Object.assign({id: doc.id}, doc.data())))
+    .then(qs => qs.docs.map(doc => Object.assign({id: doc.id, imgDecodeURI: decodeURIComponent(doc.data().img), videoDecodeURI: decodeURIComponent(doc.data().video)}, doc.data())))
     .then(qs => res.send(qs));
   });
   
   router.get('/movies/:movieId', function(req, res) {
 
-    documentExists(req.params.movieId)
+    documentExists("movies", req.params.movieId)
     .then( doc => {
       if(doc.exists) {
         db.collection("movies")
           .doc(req.params.movieId)
           .get()
-          .then(qs => res.status(202).send(qs.data()));
+          .then(qs => res.status(202).send(Object.assign({imgDecodeURI: decodeURIComponent(qs.data().img), videoDecodeURI: decodeURIComponent(qs.data().video)},qs.data())));
       }else{
-        res.status(404).send("Document doesn't exist")
+        res.status(404).send("Movie doesn't exist")
       }
     })
   });
@@ -42,8 +37,8 @@ const allRoutes = (db) => {
 
     body('name').notEmpty().escape().isString(), 
     body('author').notEmpty().escape().isString(), 
-    body('img').trim().notEmpty().isURL().escape(), 
-    body('video').trim().notEmpty().isURL().escape(), 
+    body('img').trim().notEmpty().isURL(), 
+    body('video').trim().notEmpty().isURL(), 
     body('category').trim().notEmpty().escape().isString(), 
     body('description').notEmpty().escape().isString(), 
     
@@ -59,24 +54,24 @@ const allRoutes = (db) => {
       const args = {
         name: req.body["name"],
         author: req.body["author"],
-        img: req.body["img"],
-        video: req.body["video"],
+        img: encodeURIComponent(req.body['img']),
+        video: encodeURIComponent(req.body['video']),
         category: req.body["category"],
         description: req.body["description"],
         likes: 0,
       };
 
-      categoryExists(req.body["category"])
+      documentExists("categories", req.body["category"])
       .then( doc => {
         if(doc.exists) {
           db.collection("movies")
             .add(args)
             .then(doc => {
-              const docInfo = Object.assign({id: doc.id}, args)
+              const docInfo = Object.assign({id: doc.id, imgDecodeURI: decodeURIComponent(args.img), videoDecodeURI: decodeURIComponent(args.video)}, args)
               res.status(201).send(docInfo)
             });
         }else{
-          res.status(404).send("Document doesn't exist")
+          res.status(404).send("Category doesn't exist")
         }
       }) 
   });
@@ -86,13 +81,18 @@ const allRoutes = (db) => {
 
   body('name').escape().isString().optional(), 
   body('author').escape().isString().optional(), 
-  body('img').trim().isURL().escape().optional(), 
-  body('video').trim().isURL().escape().optional(), 
+  body('img').trim().isURL().optional(), 
+  body('video').trim().isURL().optional(), 
   body('category').trim().escape().isString().optional(), 
-  body('description').escape().isString().optional(),
-  
+  body('description').escape().isString().optional(),  
   
   (req, res) => {
+    if(req.body['img']){
+      req.body['img'] = encodeURIComponent(req.body['img']); 
+    } 
+    if(req.body['video']){
+      req.body['video'] = encodeURIComponent(req.body['video']); 
+    } 
 
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -102,7 +102,7 @@ const allRoutes = (db) => {
 
     let args = {...req.body};
 
-    documentExists(req.params.movieId)
+    documentExists("movies", req.params.movieId)
     .then( doc => {
       if(doc.exists) {
         db.collection("movies")
@@ -112,16 +112,16 @@ const allRoutes = (db) => {
               db.collection("movies")
               .doc(req.params.movieId)
               .get()
-              .then(doc => res.status(202).send(Object.assign({id: req.params.movieId}, doc.data())))
+              .then(doc => res.status(202).send(Object.assign({id: req.params.movieId, imgDecodeURI: decodeURIComponent(doc.data().img), videoDecodeURI: decodeURIComponent(doc.data().video)}, doc.data())))
           });
       }else{
-        res.status(404).send("Document doesn't exist")
+        res.status(404).send("Movie doesn't exist")
       }
     })    
   });
 
   router.patch('/movies/like/:movieId', (req, res) => {
-    documentExists(req.params.movieId)
+    documentExists("movies", req.params.movieId)
     .then( doc => {
       if(doc.exists) {
         db.collection("movies")
@@ -133,26 +133,24 @@ const allRoutes = (db) => {
             db.collection("movies")
             .doc(req.params.movieId)
             .get()
-            .then(doc => res.status(202).send(Object.assign({id: req.params.movieId}, doc.data())))
+            .then(doc => res.status(202).send(Object.assign({id: req.params.movieId, imgDecodeURI: decodeURIComponent(doc.data().img), videoDecodeURI: decodeURIComponent(doc.data().video)}, doc.data())))
           });  
       }else{
-        res.status(404).send("Document doesn't exist")
+        res.status(404).send("Movie doesn't exist")
       }
     })
   });
 
-  router.delete("/movies/:movieId",
-
-  (req, res) => {
-    documentExists(req.params.movieId)
+  router.delete("/movies/:movieId", (req, res) => {
+    documentExists("movies", req.params.movieId)
     .then( doc => {
       if(doc.exists) {
         db.collection("movies")
           .doc(req.params.movieId)
           .delete()
-          .then(() => res.status(202).send("Document has been successfully deleted"))
+          .then(() => res.status(202).send("Movie has been successfully deleted"))
       }else{
-        res.status(404).send("Document doesn't exist")
+        res.status(404).send("Movie doesn't exist")
       }
     })
   });

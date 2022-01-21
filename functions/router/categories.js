@@ -28,7 +28,7 @@ const allRoutes = (db) => {
           .get()
           .then(qs => res.status(202).send(qs.data()));
       }else{
-        res.status(404).send("Document doesn't exist")
+        res.status(404).send("Category doesn't exist")
       }
     })
   });
@@ -84,7 +84,7 @@ const allRoutes = (db) => {
               .then(doc => res.status(202).send(Object.assign({id: req.params.categoryId}, doc.data())))
           });
       }else{
-        res.status(404).send("Document doesn't exist")
+        res.status(404).send("Category doesn't exist")
       }
     })    
   });
@@ -98,9 +98,9 @@ const allRoutes = (db) => {
         db.collection("categories")
           .doc(req.params.categoryId)
           .delete()
-          .then(() => res.status(202).send("Document has been successfully deleted"))
+          .then(() => res.status(202).send("Category has been successfully deleted"))
       }else{
-        res.status(404).send("Document doesn't exist")
+        res.status(404).send("Category doesn't exist")
       }
     })
   });
