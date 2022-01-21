@@ -65,11 +65,11 @@ const allRoutes = (db) => {
   router.patch('/movies/:movieId', 
 
   body('name').escape().isString().optional(), 
-    body('author').escape().isString().optional(), 
-    body('img').trim().isURL().escape().optional(), 
-    body('video').trim().isURL().escape().optional(), 
-    body('category').trim().escape().isString().optional(), 
-    body('description').escape().isString().optional(),
+  body('author').escape().isString().optional(), 
+  body('img').trim().isURL().escape().optional(), 
+  body('video').trim().isURL().escape().optional(), 
+  body('category').trim().escape().isString().optional(), 
+  body('description').escape().isString().optional(),
   
   
   (req, res) => {
@@ -82,15 +82,22 @@ const allRoutes = (db) => {
 
     let args = {...req.body};
 
-    db.collection("movies")
-      .doc(req.params.movieId)
-      .update(args)
-      . then( () => {
-          db.collection("movies")
+    documentExists(req.params.movieId)
+    .then( doc => {
+      if(doc.exists) {
+        db.collection("movies")
           .doc(req.params.movieId)
-          .get()
-          .then(doc => res.status(202).send(Object.assign({id: req.params.movieId}, doc.data())))
-        });    
+          .update(args)
+          .then( () => {
+              db.collection("movies")
+              .doc(req.params.movieId)
+              .get()
+              .then(doc => res.status(202).send(Object.assign({id: req.params.movieId}, doc.data())))
+          });
+      }else{
+        res.status(404).send("Document doesn't exist")
+      }
+    })    
   });
 
   router.patch('/movies/like/:movieId', (req, res) => {
